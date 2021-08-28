@@ -7,6 +7,7 @@ use crate::cpu::instruction::Instruction;
 use crate::cpu::registers::Registers;
 use crate::memory_bus::MemoryBus;
 
+use self::instruction::*;
 
 pub struct CPU {
     registers: Registers,
@@ -14,8 +15,6 @@ pub struct CPU {
     sp: u16,
     bus: MemoryBus,
 }
-
-
 
 impl CPU {
     pub fn new(boot_rom: Option<Vec<u8>>, _game_rom: Vec<u8>) -> CPU {
@@ -37,6 +36,71 @@ impl CPU {
                 }
                 _ => self.pc,
             },
+            Instruction::XOR(target) => match target {
+                AritmeticTarget::A => {
+                    let value = self.registers.a ^ self.registers.a;
+                    self.registers.a = value;
+                    self.registers.f.clear();
+                    self.registers.f.zero = value == 0;
+
+                    self.pc.wrapping_add(1)
+                }
+                _ => { panic!("todo more xors") }
+            },
+            Instruction::LD(load_type) => match load_type {
+                LoadType::Byte(target, source) => {
+                    let source_value = match source {
+                        LoadByteSource::A => self.registers.a,
+                        LoadByteSource::D8 => self.read_next_byte(),
+                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                        _ => {
+                            panic!("TODO: implement other sources")
+                        }
+                    };
+                    match target {
+                        LoadByteTarget::A => self.registers.a = source_value,
+                        LoadByteTarget::HLI => {
+                            self.bus.write_byte(self.registers.get_hl(), source_value)
+                        }
+                        _ => {
+                            panic!("TODO: implement other targets")
+                        }
+                    };
+                    match source {
+                        LoadByteSource::D8 => self.pc.wrapping_add(2),
+                        _ => self.pc.wrapping_add(1),
+                    }
+                },
+                LoadType::Word(target) => {
+                    let word = self.read_next_word();
+                    match target {
+                        LoadWordTarget::SP => self.sp = word,
+                        LoadWordTarget::HL => self.registers.set_hl(word),
+                        _ => {
+                            panic!("TODO: impletent other load word targets")
+                        }
+                    }
+                    self.pc.wrapping_add(3)
+                },
+                LoadType::IndirectFromA(indirect) => {
+                    let a = self.registers.a;
+                    match indirect {
+                        Indirect::HLIndirectMinus => {
+                            let hl = self.registers.get_hl();
+                            self.registers.set_hl(hl.wrapping_sub(1));
+                            self.bus.write_byte(hl, a);
+                        }
+                        _ => { panic!("todo more indirects") }
+                    }
+                    self.pc.wrapping_add(1)
+                }
+                _ => {
+                    panic!("TODO: implement other load types")
+                }
+            },
+            _ => {
+                panic!("TODO: support more instructions")
+            }
         }
     }
 
@@ -71,5 +135,14 @@ impl CPU {
         };
 
         self.pc = next_pc;
+    }
+
+    fn read_next_byte(&self) -> u8 {
+        self.bus.read_byte(self.pc + 1)
+    }
+
+    fn read_next_word(&self) -> u16 {
+        //Gameboy is little endian so the second byte as first half of the word
+        ((self.bus.read_byte(self.pc + 2) as u16) << 8) | (self.bus.read_byte(self.pc) + 1) as u16
     }
 }

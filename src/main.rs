@@ -24,7 +24,9 @@ pub fn main() {
         .unwrap();
     
     let mut cpu = CPU::new(boot_buffer, game_buffer);
-    cpu.step();
+    loop {
+        cpu.step();
+    }
 }
 
 

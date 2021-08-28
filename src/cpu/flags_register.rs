@@ -15,6 +15,12 @@ impl FlagsRegister {
             carry: false,
         }
     }
+    pub fn clear(&mut self) {
+        self.zero = false;
+        self.subtract = false;
+        self.half_carry = false;
+        self.carry = false;
+    }
 }
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
