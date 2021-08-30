@@ -2,7 +2,7 @@ pub mod flags_register;
 pub mod instruction;
 pub mod registers;
 
-use crate::cpu::instruction::AritmeticTarget;
+use crate::cpu::instruction::ArithmeticTarget;
 use crate::cpu::instruction::Instruction;
 use crate::cpu::registers::Registers;
 use crate::memory_bus::MemoryBus;
@@ -16,6 +16,41 @@ pub struct CPU {
     bus: MemoryBus,
 }
 
+macro_rules! manipulate_8bit_register {
+    ($self:ident  : $getter:ident => $work:ident) => {
+        $self.$work($self.registers.$getter)
+    };
+    ($self:ident  : $getter:ident => $work:ident, $result_register:ident) => {
+        $self.registers.$result_register = manipulate_8bit_register!($self: $getter => $work);
+    };
+}
+
+#[macro_export]
+macro_rules! arithmetic_instruction {
+    ($register:ident, $self:ident.$work:ident) => {
+        match $register {
+            ArithmeticTarget::A => manipulate_8bit_register!($self: a => $work),
+            ArithmeticTarget::B => manipulate_8bit_register!($self: b => $work),
+            ArithmeticTarget::C => manipulate_8bit_register!($self: c => $work),
+            ArithmeticTarget::D => manipulate_8bit_register!($self: d => $work),
+            ArithmeticTarget::E => manipulate_8bit_register!($self: e => $work),
+            ArithmeticTarget::H => manipulate_8bit_register!($self: h => $work),
+            ArithmeticTarget::L => manipulate_8bit_register!($self: l => $work),
+        }
+    };
+    ($register:ident, $self:ident.$work:ident => $result_register:ident) => {
+        match $register {
+            ArithmeticTarget::A => manipulate_8bit_register!($self: a => $work, $result_register),
+            ArithmeticTarget::B => manipulate_8bit_register!($self: b => $work, $result_register),
+            ArithmeticTarget::C => manipulate_8bit_register!($self: c => $work, $result_register),
+            ArithmeticTarget::D => manipulate_8bit_register!($self: d => $work, $result_register),
+            ArithmeticTarget::E => manipulate_8bit_register!($self: e => $work, $result_register),
+            ArithmeticTarget::H => manipulate_8bit_register!($self: h => $work, $result_register),
+            ArithmeticTarget::L => manipulate_8bit_register!($self: l => $work, $result_register),
+        }
+    };
+}
+
 impl CPU {
     pub fn new(boot_rom: Option<Vec<u8>>, _game_rom: Vec<u8>) -> CPU {
         CPU {
@@ -27,25 +62,13 @@ impl CPU {
     }
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
-            Instruction::ADD(target) => match target {
-                AritmeticTarget::C => {
-                    let value = self.registers.c;
-                    let new_value = self.add(value);
-                    self.registers.a = new_value;
-                    self.pc.wrapping_add(1)
-                }
-                _ => self.pc,
+            Instruction::ADD(register) => {
+                arithmetic_instruction!(register, self.add_without_carry => a);
+                self.pc.wrapping_add(1)
             },
-            Instruction::XOR(target) => match target {
-                AritmeticTarget::A => {
-                    let value = self.registers.a ^ self.registers.a;
-                    self.registers.a = value;
-                    self.registers.f.clear();
-                    self.registers.f.zero = value == 0;
-
-                    self.pc.wrapping_add(1)
-                }
-                _ => { panic!("todo more xors") }
+            Instruction::XOR(register) => {
+                arithmetic_instruction!(register, self.xor => a);
+                self.pc.wrapping_add(1)
             },
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
@@ -70,7 +93,7 @@ impl CPU {
                         LoadByteSource::D8 => self.pc.wrapping_add(2),
                         _ => self.pc.wrapping_add(1),
                     }
-                },
+                }
                 LoadType::Word(target) => {
                     let word = self.read_next_word();
                     match target {
@@ -81,7 +104,7 @@ impl CPU {
                         }
                     }
                     self.pc.wrapping_add(3)
-                },
+                }
                 LoadType::IndirectFromA(indirect) => {
                     let a = self.registers.a;
                     match indirect {
@@ -90,7 +113,9 @@ impl CPU {
                             self.registers.set_hl(hl.wrapping_sub(1));
                             self.bus.write_byte(hl, a);
                         }
-                        _ => { panic!("todo more indirects") }
+                        _ => {
+                            panic!("todo more indirects")
+                        }
                     }
                     self.pc.wrapping_add(1)
                 }
@@ -98,13 +123,18 @@ impl CPU {
                     panic!("TODO: implement other load types")
                 }
             },
+
             _ => {
                 panic!("TODO: support more instructions")
             }
         }
     }
+    
+    fn add_without_carry(&mut self, value: u8) -> u8 {
+        self.add(value, false)
+    }
 
-    fn add(&mut self, value: u8) -> u8 {
+    fn add(&mut self, value: u8, carry: bool) -> u8 {
         let (new_value, overflow) = self.registers.a.overflowing_add(value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
@@ -116,6 +146,14 @@ impl CPU {
 
         new_value
     }
+
+    fn xor(&mut self, value: u8) -> u8 {
+        let new_value = self.registers.a ^ value;
+        self.registers.f.clear();
+        self.registers.f.zero = value == 0;
+        new_value
+    }
+
     pub fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;

@@ -4,24 +4,8 @@ use clap::{App, Arg};
 use std::io::Read;
 
 pub fn main() {
-    let matches = App::new("DMG-01")
-        .author("Ryan Levick <ryan.levick@gmail.com>")
-        .arg(Arg::with_name("boot rom").short("b").value_name("FILE"))
-        .arg(
-            Arg::with_name("rom")
-                .short("r")
-                .required(true)
-                .value_name("FILE"),
-        )
-        .get_matches();
-
-    let boot_buffer = matches
-        .value_of("boot rom")
-        .map(|path| buffer_from_file(path));
-    let game_buffer = matches
-        .value_of("rom")
-        .map(|path| buffer_from_file(path))
-        .unwrap();
+    let boot_buffer = Some(buffer_from_file("./test_roms/dmg_boot.bin"));
+    let game_buffer = buffer_from_file("./test_roms/tetris.gb");
     
     let mut cpu = CPU::new(boot_buffer, game_buffer);
     loop {

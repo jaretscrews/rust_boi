@@ -1,10 +1,11 @@
 pub enum Instruction {
-    ADD(AritmeticTarget),
-    XOR(AritmeticTarget),
+    ADD(ArithmeticTarget),
+    XOR(ArithmeticTarget),
     LD(LoadType),
+    BIT(BitPosition),
 }
 
-pub enum AritmeticTarget {
+pub enum ArithmeticTarget {
     A,
     B,
     C,
@@ -57,6 +58,17 @@ pub enum Indirect {
     LastByteIndirect,
 }
 
+pub enum BitPosition {
+    B0,
+    B1,
+    B2,
+    B3,
+    B4,
+    B5,
+    B6,
+    B7,
+}
+
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
         if prefixed {
@@ -68,6 +80,7 @@ impl Instruction {
 
     fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
+            0x7c => Some(Instruction::BIT(BitPosition::B7)),
             _ =>
             /* TODO: Add mapping for rest of instructions */
             {
@@ -78,7 +91,7 @@ impl Instruction {
 
     fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
-            0xaf => Some(Instruction::XOR(AritmeticTarget::A)),
+            0xaf => Some(Instruction::XOR(ArithmeticTarget::A)),
             0x31 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::SP))),
             0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL))),
             0x32 => Some(Instruction::LD(LoadType::IndirectFromA(Indirect::HLIndirectMinus))),
