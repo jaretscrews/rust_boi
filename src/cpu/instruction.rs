@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Instruction {
     ADD(ArithmeticTarget),
     XOR(ArithmeticTarget),
@@ -5,6 +6,7 @@ pub enum Instruction {
     BIT(BitPosition),
 }
 
+#[derive(Debug)]
 pub enum ArithmeticTarget {
     A,
     B,
@@ -15,6 +17,7 @@ pub enum ArithmeticTarget {
     L,
 }
 
+#[derive(Debug)]
 pub enum LoadByteTarget {
     A,
     B,
@@ -25,6 +28,7 @@ pub enum LoadByteTarget {
     L,
     HLI,
 }
+#[derive(Debug)]
 pub enum LoadByteSource {
     A,
     B,
@@ -36,12 +40,14 @@ pub enum LoadByteSource {
     D8,
     HLI,
 }
+#[derive(Debug)]
 pub enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
     Word(LoadWordTarget),
     IndirectFromA(Indirect),
 }
 
+#[derive(Debug)]
 pub enum LoadWordTarget {
     BC,
     DE,
@@ -49,6 +55,7 @@ pub enum LoadWordTarget {
     SP,
 }
 
+#[derive(Debug)]
 pub enum Indirect {
     BCIndirect,
     DEIndirect,
@@ -58,6 +65,7 @@ pub enum Indirect {
     LastByteIndirect,
 }
 
+#[derive(Debug)]
 pub enum BitPosition {
     B0,
     B1,

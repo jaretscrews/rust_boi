@@ -77,7 +77,7 @@ impl CPU {
                         LoadByteSource::D8 => self.read_next_byte(),
                         LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
                         _ => {
-                            panic!("TODO: implement other sources")
+                            panic!("TODO: implement other sources {:?}", source)
                         }
                     };
                     match target {
@@ -86,7 +86,7 @@ impl CPU {
                             self.bus.write_byte(self.registers.get_hl(), source_value)
                         }
                         _ => {
-                            panic!("TODO: implement other targets")
+                            panic!("TODO: implement other targets {:?}", target)
                         }
                     };
                     match source {
@@ -100,7 +100,7 @@ impl CPU {
                         LoadWordTarget::SP => self.sp = word,
                         LoadWordTarget::HL => self.registers.set_hl(word),
                         _ => {
-                            panic!("TODO: impletent other load word targets")
+                            panic!("TODO: impletent other load word targets {:?}", target)
                         }
                     }
                     self.pc.wrapping_add(3)
@@ -114,18 +114,18 @@ impl CPU {
                             self.bus.write_byte(hl, a);
                         }
                         _ => {
-                            panic!("todo more indirects")
+                            panic!("todo more indirects {:?}", indirect)
                         }
                     }
                     self.pc.wrapping_add(1)
                 }
                 _ => {
-                    panic!("TODO: implement other load types")
+                    panic!("TODO: implement other load types {:?}", load_type)
                 }
             },
 
             _ => {
-                panic!("TODO: support more instructions")
+                panic!("TODO: support more instructions {:?}", instruction)
             }
         }
     }
