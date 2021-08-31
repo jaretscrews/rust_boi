@@ -37,6 +37,10 @@ macro_rules! arithmetic_instruction {
             ArithmeticTarget::E => manipulate_8bit_register!($self: e => $work),
             ArithmeticTarget::H => manipulate_8bit_register!($self: h => $work),
             ArithmeticTarget::L => manipulate_8bit_register!($self: l => $work),
+            ArithmeticTarget::HLI => {
+                let value = $self.bus.read_byte($self.registers.get_hl());
+                $self.$work(value);
+            },
         };
 
         match $register {
@@ -91,10 +95,16 @@ impl CPU {
             },
             Instruction::AND(register) => {
                 arithmetic_instruction!(register, self.and => a)
-            }
+            },
+            Instruction::OR(register) => {
+                arithmetic_instruction!(register, self.or => a)
+            },
             Instruction::XOR(register) => {
                 arithmetic_instruction!(register, self.xor => a)
             },
+            Instruction::CP(register) => {
+                arithmetic_instruction!(register, self.compare)
+            }
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
                     let source_value = match source {
@@ -217,10 +227,17 @@ impl CPU {
     }
 
     fn and(&mut self, value: u8) -> u8 {
-        let new_value = self.registers.a ^ value;
+        let new_value = self.registers.a & value;
         self.registers.f.clear();
         self.registers.f.zero = new_value == 0;
         self.registers.f.half_carry = true;
+        new_value
+    }
+
+    fn or(&mut self, value: u8) -> u8 {
+        let new_value = self.registers.a | value;
+        self.registers.f.clear();
+        self.registers.f.zero = new_value == 0;
         new_value
     }
 
@@ -229,6 +246,14 @@ impl CPU {
         self.registers.f.clear();
         self.registers.f.zero = new_value == 0;
         new_value
+    }
+
+    fn compare(&mut self, value: u8) {
+        self.registers.f.clear();
+        self.registers.f.zero = self.registers.a == value;
+        self.registers.f.subtract = true;
+        self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF);
+        self.registers.f.carry = self.registers.a < value;
     }
 
     fn read_next_byte(&self) -> u8 {
