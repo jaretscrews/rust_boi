@@ -1,6 +1,5 @@
 use lib_rust_boi::cpu::CPU;
 
-use clap::{App, Arg};
 use std::io::Read;
 
 pub fn main() {
