@@ -83,6 +83,12 @@ impl CPU {
             Instruction::ADC(register) => {
                 arithmetic_instruction!(register, self.add_with_carry => a)
             },
+            Instruction::SUB(register) => {
+                arithmetic_instruction!(register, self.sub_without_carry => a)
+            },
+            Instruction::SBC(register) => {
+                arithmetic_instruction!(register, self.sub_with_carry => a)
+            },
             Instruction::XOR(register) => {
                 arithmetic_instruction!(register, self.xor => a)
             },
@@ -167,7 +173,26 @@ impl CPU {
         self.pc = next_pc;
         cycles
     }
-    
+    fn sub_with_carry(&mut self, value: u8) -> u8 {
+        self.sub(value, true)
+    }
+
+    fn sub_without_carry(&mut self, value: u8) -> u8 {
+        self.sub(value, false)
+    }
+
+    fn sub(&mut self, value: u8, carry: bool) -> u8 {
+        let carry_value:u8 = (carry && self.registers.f.carry) as u8;
+
+        let (new_value, overflow) = self.registers.a.overflowing_sub(value);
+        let (new_value2, overflow2) = new_value.overflowing_sub(carry_value);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = true;
+        self.registers.f.carry = overflow || overflow2;
+        self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF) + carry_value;
+        new_value2
+    }
+
     fn add_without_carry(&mut self, value: u8) -> u8 {
         self.add(value, false)
     }
@@ -178,16 +203,17 @@ impl CPU {
 
     fn add(&mut self, value: u8, carry: bool) -> u8 {
         let carry_value:u8 = (carry && self.registers.f.carry) as u8;
-        let (new_value, overflow) = self.registers.a.overflowing_add(value + carry_value);
+        let (new_value, overflow) = self.registers.a.overflowing_add(value);
+        let (new_value2, overflow2) = new_value.overflowing_add(carry_value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
-        self.registers.f.carry = overflow;
+        self.registers.f.carry = overflow || overflow2;
         // Half Carry is set if adding the lower nibbles of the value and register A
         // together result in a value bigger than 0xF. If the result is larger than 0xF
         // than the addition caused a carry from the lower nibble to the upper nibble.
-        self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
+        self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) + carry_value > 0xF;
 
-        new_value
+        new_value2
     }
 
     fn xor(&mut self, value: u8) -> u8 {
