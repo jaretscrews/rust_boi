@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum Instruction {
     ADD(ArithmeticTarget),
+    ADC(ArithmeticTarget),
     XOR(ArithmeticTarget),
     LD(LoadType),
     BIT(BitPosition),
@@ -15,6 +16,7 @@ pub enum ArithmeticTarget {
     E,
     H,
     L,
+    HLI,
 }
 
 #[derive(Debug)]
@@ -99,6 +101,22 @@ impl Instruction {
 
     fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
+            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
+            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
+            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
+            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
+            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
+            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+            0x86 => Some(Instruction::ADD(ArithmeticTarget::HLI)),
+            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
+            0x88 => Some(Instruction::ADC(ArithmeticTarget::B)),
+            0x89 => Some(Instruction::ADC(ArithmeticTarget::C)),
+            0x8a => Some(Instruction::ADC(ArithmeticTarget::D)),
+            0x8b => Some(Instruction::ADC(ArithmeticTarget::E)),
+            0x8c => Some(Instruction::ADC(ArithmeticTarget::H)),
+            0x8d => Some(Instruction::ADC(ArithmeticTarget::L)),
+            0x8e => Some(Instruction::ADC(ArithmeticTarget::HLI)),
+            0x8f => Some(Instruction::ADC(ArithmeticTarget::A)),
             0xaf => Some(Instruction::XOR(ArithmeticTarget::A)),
             0x31 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::SP))),
             0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL))),

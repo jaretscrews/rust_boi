@@ -52,10 +52,16 @@ macro_rules! arithmetic_instruction {
             ArithmeticTarget::E => {manipulate_8bit_register!($self: e => $work, $result_register)},
             ArithmeticTarget::H => {manipulate_8bit_register!($self: h => $work, $result_register)},
             ArithmeticTarget::L => {manipulate_8bit_register!($self: l => $work, $result_register)},
+            ArithmeticTarget::HLI => {
+                let value = $self.bus.read_byte($self.registers.get_hl());
+                let result = $self.$work(value);
+                $self.registers.a = result;
+            },
         };
 
         match $register {
-            _ => {($self.pc.wrapping_add(1), 1)}
+            ArithmeticTarget::HLI => ($self.pc.wrapping_add(1), 8),
+            _ => {($self.pc.wrapping_add(1), 4)}
         }
     }};
 }
@@ -73,6 +79,9 @@ impl CPU {
         match instruction {
             Instruction::ADD(register) => {
                 arithmetic_instruction!(register, self.add_without_carry => a)
+            },
+            Instruction::ADC(register) => {
+                arithmetic_instruction!(register, self.add_with_carry => a)
             },
             Instruction::XOR(register) => {
                 arithmetic_instruction!(register, self.xor => a)
@@ -163,8 +172,13 @@ impl CPU {
         self.add(value, false)
     }
 
+    fn add_with_carry(&mut self, value: u8) -> u8 {
+        self.add(value, true)
+    }
+
     fn add(&mut self, value: u8, carry: bool) -> u8 {
-        let (new_value, overflow) = self.registers.a.overflowing_add(value);
+        let carry_value:u8 = (carry && self.registers.f.carry) as u8;
+        let (new_value, overflow) = self.registers.a.overflowing_add(value + carry_value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.carry = overflow;
