@@ -89,6 +89,9 @@ impl CPU {
             Instruction::SBC(register) => {
                 arithmetic_instruction!(register, self.sub_with_carry => a)
             },
+            Instruction::AND(register) => {
+                arithmetic_instruction!(register, self.and => a)
+            }
             Instruction::XOR(register) => {
                 arithmetic_instruction!(register, self.xor => a)
             },
@@ -140,9 +143,6 @@ impl CPU {
                         }
                     }
                     (self.pc.wrapping_add(1), 1)
-                }
-                _ => {
-                    panic!("TODO: implement other load types {:?}", load_type)
                 }
             },
 
@@ -216,10 +216,18 @@ impl CPU {
         new_value2
     }
 
+    fn and(&mut self, value: u8) -> u8 {
+        let new_value = self.registers.a ^ value;
+        self.registers.f.clear();
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.half_carry = true;
+        new_value
+    }
+
     fn xor(&mut self, value: u8) -> u8 {
         let new_value = self.registers.a ^ value;
         self.registers.f.clear();
-        self.registers.f.zero = value == 0;
+        self.registers.f.zero = new_value == 0;
         new_value
     }
 

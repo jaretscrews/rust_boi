@@ -47,7 +47,7 @@ impl MemoryBus {
             }
         }
     }
-    pub fn write_byte(&self, addr: u16, byte: u8) {
-        
+    pub fn write_byte(&self, _addr: u16, _byte: u8) {
+
     }
 }
