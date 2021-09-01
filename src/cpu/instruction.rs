@@ -1,5 +1,6 @@
 #[derive(Debug)]
 pub enum Instruction {
+    NOP,
     ADD(ArithmeticTarget),
     ADC(ArithmeticTarget),
     SUB(ArithmeticTarget),
@@ -106,6 +107,12 @@ impl Instruction {
 
     fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
+            0x00 => Some(Instruction::NOP),
+            0x01 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::BC))),
+            0x02 => Some(Instruction::LD(LoadType::IndirectFromA(Indirect::BCIndirect))),
+            0x31 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::SP))),
+            0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL))),
+            0x32 => Some(Instruction::LD(LoadType::IndirectFromA(Indirect::HLIndirectMinus))),
             0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
             0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
             0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
@@ -170,9 +177,6 @@ impl Instruction {
             0xbd => Some(Instruction::CP(ArithmeticTarget::L)),
             0xbe => Some(Instruction::CP(ArithmeticTarget::HLI)),
             0xbf => Some(Instruction::CP(ArithmeticTarget::A)),
-            0x31 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::SP))),
-            0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL))),
-            0x32 => Some(Instruction::LD(LoadType::IndirectFromA(Indirect::HLIndirectMinus))),
             _ =>
             /* TODO: Add mapping for rest of instructions */
             {
