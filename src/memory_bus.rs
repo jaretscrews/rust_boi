@@ -3,7 +3,7 @@ pub const BOOT_ROM_END: usize = 0xFF;
 pub const BOOT_ROM_SIZE: usize = BOOT_ROM_END - BOOT_ROM_BEGIN + 1;
 
 pub const ROM_BANK_0_BEGIN: usize = 0x0000;
-pub const ROM_BANK_0_END: usize = 0x3FFFF;
+pub const ROM_BANK_0_END: usize = 0x3FFF;
 pub const ROM_BANK_0_SIZE: usize = ROM_BANK_0_END - ROM_BANK_0_BEGIN + 1;
 
 pub const ROM_BANK_N_BEGIN: usize = 0x4000;
@@ -98,9 +98,19 @@ impl MemoryBus {
                     boot_rom[address]
                 }
                 else {
-                    panic!("only should be doing boot rom");
+                    self.rom_bank_0[address]
                 }
             }
+            ROM_BANK_0_BEGIN..=ROM_BANK_0_END => self.rom_bank_0[address],
+            ROM_BANK_N_BEGIN..=ROM_BANK_N_END => self.rom_bank_n[address - ROM_BANK_N_BEGIN],
+            //todo vram
+            CARTRIDGE_RAM_BEGIN..=CARTRIDGE_RAM_END => self.cartridge_ram[address - CARTRIDGE_RAM_BEGIN],
+            INTERNAL_RAM_BEGIN..=INTERNAL_RAM_END => self.internal_ram[address - INTERNAL_RAM_BEGIN],
+            ECHO_RAM_BEGIN..=ECHO_RAM_END => self.internal_ram[address - ECHO_RAM_BEGIN],
+            //todo oam
+            UNUSED_BEGIN..=UNUSED_END => 0,
+            ZERO_PAGE_BEGIN..=ZERO_PAGE_END => self.zero_page[address - ZERO_PAGE_BEGIN],
+            //todo interupt flag
             _ => {
                 panic!(
                     "Reading from an unkown part of memory at address 0x{:x}",
@@ -109,17 +119,17 @@ impl MemoryBus {
             }
         }
     }
-    pub fn write_byte(&mut self, addr: u16, byte: u8) {
-        let addr = addr as usize;
-        match addr {
+    pub fn write_byte(&mut self, address: u16, byte: u8) {
+        let address = address as usize;
+        match address {
             ROM_BANK_0_BEGIN..=ROM_BANK_0_END => {
-                self.rom_bank_0[addr] = byte;
+                self.rom_bank_0[address] = byte;
             },
             VRAM_BEGIN..=VRAM_END => {
                 //todo gpu
             },
             CARTRIDGE_RAM_BEGIN..=CARTRIDGE_RAM_END => {
-                self.cartridge_ram[addr - CARTRIDGE_RAM_BEGIN] = byte;
+                self.cartridge_ram[address - CARTRIDGE_RAM_BEGIN] = byte;
             },
             OAM_BEGIN..=OAM_END => {
                 //todo more gpu
@@ -129,14 +139,47 @@ impl MemoryBus {
             },
             UNUSED_BEGIN..=UNUSED_END => {/*DO NOTHING*/},
             ZERO_PAGE_BEGIN..=ZERO_PAGE_END => {
-                self.zero_page[addr - ZERO_PAGE_BEGIN] = byte;
+                self.zero_page[address - ZERO_PAGE_BEGIN] = byte;
             },
             INTERRUPT_ENABLE_REGISTER => {
                 //todo interupt reg
-            }
+            },
             _ => {
-                panic!("Couldn't write to address 0x{:x} not a supported address", addr);
-            }
+                panic!("Couldn't write to address 0x{:x} not a supported address", address);
+            },
         }
     }
+}
+
+#[test]
+fn test_write_cartridge_ram_begin() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = CARTRIDGE_RAM_BEGIN as u16;
+    let expected = 0xAB;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
+}
+
+#[test]
+fn test_write_cartridge_ram_middle() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = CARTRIDGE_RAM_BEGIN as u16 + (CARTRIDGE_RAM_SIZE as u16 / 2);
+    let expected = 0x34;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
+}
+
+#[test]
+fn test_write_cartridge_ram_end() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = CARTRIDGE_RAM_END as u16;
+    let expected = 0xBC;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
 }
