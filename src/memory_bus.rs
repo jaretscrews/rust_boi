@@ -142,7 +142,8 @@ impl MemoryBus {
                 self.zero_page[address - ZERO_PAGE_BEGIN] = byte;
             },
             INTERRUPT_ENABLE_REGISTER => {
-                //todo interupt reg
+                //todo interrupt reg
+                panic!("interrupt not set up yet!");
             },
             _ => {
                 panic!("Couldn't write to address 0x{:x} not a supported address", address);
@@ -179,6 +180,39 @@ fn test_write_cartridge_ram_end() {
     let mut memory_bus = MemoryBus::new(None, game_rom);
     let addr = CARTRIDGE_RAM_END as u16;
     let expected = 0xBC;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
+}
+
+#[test]
+fn test_write_rom_bank_0_begin() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = ROM_BANK_0_BEGIN as u16;
+    let expected = 0x42;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
+}
+
+#[test]
+fn test_write_rom_bank_0_middle() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = (ROM_BANK_0_BEGIN + (ROM_BANK_0_SIZE / 2)) as u16;
+    let expected = 0x44;
+    memory_bus.write_byte(addr, expected);
+    let value = memory_bus.read_byte(addr);
+    assert_eq!(value, expected);
+}
+
+#[test]
+fn test_write_rom_bank_0_end() {
+    let game_rom: Vec<u8> = [0; ROM_BANK_0_SIZE + ROM_BANK_N_SIZE].to_vec();
+    let mut memory_bus = MemoryBus::new(None, game_rom);
+    let addr = ROM_BANK_0_END as u16;
+    let expected = 0x45;
     memory_bus.write_byte(addr, expected);
     let value = memory_bus.read_byte(addr);
     assert_eq!(value, expected);
